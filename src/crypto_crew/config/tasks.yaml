@@ -1,0 +1,120 @@
+### src/crypto_crew/config/tasks.yaml
+
+research_task:
+  description: >
+    Execute an API request to retrieve metadata on {coin_symbol}, analyze key metrics, 
+    and provide a concise summary of the findings in Russian and save it to report.
+    Metadata: {metadata}
+  expected_output: >
+    - Approve that metadata was successfully retrieved for {coin_symbol}.
+    - A concise analytical report of the metadata, including:
+        1. Logo, name, and symbol of the cryptocurrency.
+        2. Project category and its description.
+        3. Main data: ID CoinMarketCap, launch date, official website, documentation, Whitepaper and other relevant links.
+        4. Information about the token supply and tokenomics: circulating supply, market capitalization, unlimited supply or other key data.
+        5. Key metrics, trends, and anomalies in the dataset.
+    The report should be clear, structured, and easy to understand in Russian.
+  agent: researcher
+
+technology_analyst_task:
+  description: >
+    Perform a detailed technical analysis of the cryptocurrency project {token_name} as a professional investment analyst. 
+    Evaluate the technological basis of the project, its scalability, and potential for innovations, as well as competitiveness in the market. 
+    Sequentially explore the following sources of information:
+
+    1. The official project website ({website}) using the 'ScrapeWebsiteTool'.
+    2. The project's documentation (or Whitepaper) ({whitepaper}) using the 'ScrapeWebsiteTool'.
+    3. Conduct an internet search for additional information about the technologies using the 'search technology' tool.
+    4. From the obtained results, select several articles and investigate them using the 'ScrapeWebsiteTool'.
+
+    Ensure that your analysis is comprehensive and based on reliable data with direct links for transparency.
+
+    Your report should cover key aspects, including:
+    1. Evaluation of the sector to which the project belongs and its role in the blockchain ecosystem (DeFi, Layer 1, Layer 2, NFT, etc.).
+    2. Description of the technological infrastructure, including innovations such as consensus mechanisms, scalability solutions, unique cryptographic models, etc.
+    3. Analysis of proprietary technologies, intellectual property, or patents that provide competitive advantages to the project.
+    4. Evaluation of risks (external and internal) with a focus on the project's ability to maintain competitive advantages over the long term.
+    5. The final section should include a SWOT analysis and recommendations for investors based on the conducted study.
+    
+    The document should be structured in Markdown format with clear and practical recommendations for investors. 
+    Highlight the most important points in the report.
+  expected_output: >
+    Detailed analytical report in Russian, including:
+    ## 1. Introduction
+    Overview of the project and analysis purpose.
+    ## 2. Sector description
+    - Description of the sector to which the project belongs.
+    - Evaluation of the relevance of the sector and the project's contribution to its development.
+    ## 3. Type of project
+    - Type of project and its role in the blockchain ecosystem.
+    - Significance of the project in the relevant sector.
+    ## 4. Problems and their solution
+    - Description of the problem that the project solves.
+    - Evaluation of the relevance of the problem and comparison with alternatives.
+    ## 5. Competitive advantages and innovations
+    - Unique technologies and their advantages.
+    - Comparison of competitive advantages with similar projects.
+    ## 6. Risks and threats
+    - The main risks associated with the project.
+    - Assessment of the probability and consequences of their occurrence.
+    ## 7. SWOT analysis
+    - Strengths.
+    - Weaknesses.
+    - Opportunities.
+    - Threats.
+    ## 8. Conclusion and recommendations
+    - Final conclusions about the project.
+    - Recommendations for investors.
+    ## 9. Sources
+    - A list of used sources with active hyperlinks.
+  agent: technology_analyst
+
+crypto_tokenomics_analysis_task:
+  description: >
+    Проведите всесторонний и глубокий анализ токеномики криптовалютного проекта {token_name} ({coin_symbol}). 
+    Отчет должен быть профессионально выполнен, точен и пригоден для принятия финансовых решений. 
+    Необходимо использовать предоставленные данные и при необходимости собирать дополнительную информацию из надежных источников.
+    
+    Если требуется, используйте следующие инструменты:
+    - `get_dropstab_fundraising`: для получения данных о финансировании проекта.
+    Collect fundraising and vesting data for the specified cryptocurrency.
+    Make sure to gather all relevant information from the fundraising and vesting pages.
+
+    Используйте предоставленные данные и дополните их информацией из проверенных источников, таких как:
+      - Официальный сайт проекта.
+      - Криптопорталы (например, coinmarketcap.com, coingecko.com).
+      - Блокчейн-эксплореры.
+      - Социальные сети и официальные каналы проекта.
+
+    Особое внимание уделите факторам, влияющим на цену токена, таким как механизмы выпуска токенов, динамика их циркуляции и спроса. 
+    Проанализируйте влияние различных событий на рынок, таких как разлокация токенов, листинг на биржах, механизмы сжигания токенов или выкупа. 
+
+    В заключении представьте объективную оценку токеномики проекта, выделив как сильные, так и слабые стороны. 
+    Если каких-то данных не хватает, обязательно укажите это и поясните причину.
+
+    Документ должен быть структурирован в формате Markdown с ясными и практическими рекомендациями для инвесторов.
+    Используйте следующие метаданные для анализа:
+    ###
+    {coin_metadata}
+    ###
+  expected_output: >
+    Подготовьте детализированный отчет по токеномике проекта с учетом следующих структурных пунктов:
+    ## Токеномика {coin_symbol}
+    1. Уникальные технологии проекта.
+    2. Циркулирующее предложение токенов.
+    3. Максимальное предложение токенов.
+    4. Текущая рыночная капитализация (капитализация = цена токена × циркулирующее предложение).
+    5. Потенциальная максимальная рыночная капитализация.
+    6. Тип токена (Утилитарный или Управляющий).
+    7. Тип эмиссии (ограниченная или неограниченная).
+    8. Распределение токенов (детализированная информация о команде, инвесторах, сообществе и т.д.).
+    9. График разлокации токенов и его влияние на рынок.
+    10. Возможности стейкинга или фарминга и их доходность.
+    11. Механизмы сжигания или обратного выкупа токенов.
+    12. Листинг на крупных биржах и оценка ликвидности.
+    13. Контрольный список для оценки токеномики (хорошая/плохая токеномика).
+    14. Заключение: анализ драйверов роста и факторов, влияющих на цену токена.
+    15. Использованные источники с активными ссылками на официальные ресурсы и авторитетные сайты.
+
+    Отчет должен быть написан на русском языке, иметь профессиональный стиль изложения и быть понятным для финансовых специалистов. Все секции, указанные в ожидаемом результате, должны быть полностью и точно заполнены. Отчет должен быть пригоден для принятия инвестиционных решений.
+  agent: crypto_tokenomics_analyst
