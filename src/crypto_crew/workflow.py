@@ -2,7 +2,7 @@
 
 import asyncio
 import pandas as pd
-from crewai.flow.flow import Flow, listen, router, start
+from crewai.flow.flow import Flow, listen, router, start, or_
 from src.crypto_crew.crew import CryptocrewCrew
 from src.crypto_crew.tools.get_metadata import GetCoinMetadata
 from pydantic import BaseModel
@@ -36,26 +36,37 @@ class WorkFlow(Flow):
         return self._state
 
     @start()
-    def get_coin_metadata(self):
+    def token_input(self):
+        """
+        Стартовая функция, ожидающая ввод от пользователя.
+        """
         # Get cryptocurrency symbol from input
         coin_symbol = input("Введите символ или название криптовалюты (например, BTC, ETH, TON): ")
-        print("\n", "="*20, "Retrieving metadata", "="*20, "\n")
-        # Simulate fetching metadata (replace with actual logic)
+        self._state.token = coin_symbol  # Сохраняем символ токена в состоянии
+        return coin_symbol
+
+    @listen(or_("token_input", "handle_retry"))
+    def fetch_coin_metadata(self, coin_symbol: str):
+        """
+        Функция для извлечения метаданных криптовалюты.
+        Вызывается как из стартовой функции, так и из обработки повторной попытки.
+        """
+        print("\n", "="*20, "Fetching metadata", "="*20, "\n")
         metadata = GetCoinMetadata.save_dataset.invoke(coin_symbol)
+        print(metadata)
 
         # Check if metadata is a dictionary
-        if isinstance(metadata, dict):
+        if isinstance(metadata, dict) and metadata:
             # Update the state
             self._state.token = coin_symbol
             self._state.name = metadata.get('name', "")
             self._state.metadata = metadata
+            return metadata
         else:
-            print("Ошибка: Полученные метаданные не являются словарем.")
-            self._state.metadata = {"error": "Invalid metadata format"}
+            print("Ошибка: Полученные метаданные не являются словарем или пусты.")
+            return "Empty DataFrame"
 
-        return metadata
-
-    @router(get_coin_metadata)
+    @router(fetch_coin_metadata)
     def check_status(self):
         # Проверяем наличие данных в метаданных
         if self.state.metadata and "Empty DataFrame" not in self.state.metadata:
@@ -66,8 +77,9 @@ class WorkFlow(Flow):
     @listen("retry_get_metadata")
     def handle_retry(self):
         print("Данные не найдены. Пожалуйста, скорректируйте название токена.")
-        # Retry the coin metadata fetch
-        self.get_coin_metadata()
+        # Используем сохраненный символ токена для повторной попытки
+        coin_symbol = input("Введите символ или название криптовалюты (например, BTC, ETH, TON): ")
+        return
 
     @listen("proceed_to_analysis")
     def metadata_analysis(self):
@@ -98,11 +110,23 @@ class WorkFlow(Flow):
         # Analyze the technology
         print("\n", "="*23, "Technology analysis", "="*23, "\n")
 
-        
+        # Извлекаем значения как строки
+        token_name = self.state.metadata.get('name', "")
+        website = self.state.metadata.get('urls.website', "")
+        whitepaper = self.state.metadata.get('urls.technical_doc', "")
+
+        # Если значения извлекаются как словари, берем значение по ключу 0
+        if isinstance(token_name, dict):
+            token_name = token_name.get(0, "")
+        if isinstance(website, dict):
+            website = website.get(0, [""])[0] if website.get(0) else ""
+        if isinstance(whitepaper, dict):
+            whitepaper = whitepaper.get(0, [""])[0] if whitepaper.get(0) else ""
+
         inputs = {
-            "token_name": self.state.name,  # Убедитесь, что это строка
-            "website": self.state.metadata.get('urls.website', ""),
-            "whitepaper": self.state.metadata.get('urls.technical_doc', ""),
+            "token_name": token_name,
+            "website": website,
+            "whitepaper": whitepaper,
         }
 
         print("Inputs for technology analysis:", inputs)
@@ -127,7 +151,7 @@ class WorkFlow(Flow):
         print("\n", "="*23, "Tokenomics analysis", "="*23, "\n")
 
         inputs = {
-            "token_name": self.state.metadata.get('name', ""),
+            "token_name": self.state.name,
             'coin_symbol': self.state.token,
             'coin_metadata': self.state.metadata,
         }

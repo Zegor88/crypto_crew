@@ -12,22 +12,22 @@ class FundraisingFetcher:
     def __init__(self, base_url="http://212.113.117.33:8080"):
         self.base_url = base_url
 
-    def get_html(self, link):
+    def get_html(self, token_drop_url):
         """Отправляет POST-запрос и возвращает HTML-контент."""
-        url = self.base_url  # Используем только базовый URL
+        url = f"https://dropstab.com/coins/{token_drop_url}/fundraising"  # Формируем URL с использованием token_drop_url
         headers = {
             "Content-Type": "application/json"
         }
 
         # Данные для POST-запроса
         data = {
-            "goto": link,
+            "goto": url,
             "sel": '#coin-tabs > div > section > div',
             "timeout": 30000
         }
 
         # Отправляем POST-запрос
-        response = requests.post(url, headers=headers, data=json.dumps(data))
+        response = requests.post(self.base_url, headers=headers, data=json.dumps(data))
         print(f"Status code: {response.status_code}")
         if response.status_code == 200:
             # Парсим JSON ответ, извлекаем HTML-контент
@@ -35,7 +35,7 @@ class FundraisingFetcher:
             html_content = html.unescape(response_data['data'])
             return html_content
         else:
-            raise Exception(f"Failed to fetch data for link: {link}, status code: {response.status_code}")
+            raise Exception(f"Failed to fetch data for URL: {url}, status code: {response.status_code}")
 
     def parse_fundraising_rounds(self, soup):
         """Извлекает и форматирует информацию о раундах инвестирования."""
@@ -63,10 +63,10 @@ class FundraisingFetcher:
                 investors.append(f"{investor_number:<5} {name:<30} {tier:<10} {investor_type:<20} {stage:<10}")
         return investors
 
-    def get_fundraising(self, link):
+    def get_fundraising(self, token_drop_url):
         """Основной метод для получения данных и форматирования результата."""
         try:
-            html_content = self.get_html(link)
+            html_content = self.get_html(token_drop_url)
             soup = BeautifulSoup(html_content, "html.parser")
 
             # Извлекаем раунды финансирования
@@ -81,7 +81,7 @@ class FundraisingFetcher:
                 result += "\n".join(rounds) + "\n\n"
             else:
                 result += "No fundraising rounds found.\n\n"
-                
+            
             result += "# Investors\n"
             result += f"#     {'Name':<30} {'Tier':<10} {'Type':<20} {'Stage':<10}\n"
             result += "-" * 75 + "\n"
@@ -92,7 +92,7 @@ class FundraisingFetcher:
 
             return result
         except Exception as e:
-            return f"Error fetching data for {link}: {e}"
+            return f"Error fetching data for token URL: {token_drop_url}: {e}"
 
 class FundraisingTool(BaseTool):
     name: str = "fundraising_fetcher"
@@ -104,14 +104,8 @@ class FundraisingTool(BaseTool):
         """
         # Создаем экземпляр GetTokenomicLinks
         tokenomic_links_tool = GetTokenomicLinks()
-        # Получаем ссылки в формате JSON
-        links_json = tokenomic_links_tool._run(token)
-        links = json.loads(links_json)
-
-        # Извлекаем ссылку на 'Fundraising'
-        fundraising_link = links.get("Fundraising")
-        if not fundraising_link:
-            return f"Fundraising link not found for {token}"
+        # Получаем название токена
+        token_drop_url = tokenomic_links_tool._run(token)
 
         fetcher = FundraisingFetcher()
-        return fetcher.get_fundraising(fundraising_link)
+        return fetcher.get_fundraising(token_drop_url)

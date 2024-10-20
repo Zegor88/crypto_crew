@@ -34,16 +34,15 @@ class GetTokenomicLinks(BaseTool):
 
         response_data = response.json()
 
-        # Извлечение данных из 'sitelinks'
+        # Извлечение данных из 'organic'
         tech_data = response_data.get('organic', [])
 
-        print('Was found in dropstab:', tech_data[0].get('link'))
-        sitelinks = tech_data[0].get('sitelinks', [])
+        # Извлечение названия токена из первой ссылки
+        first_link = tech_data[0].get('link')
+        token_drop_url = first_link.split('/')[-1]  # Извлекаем 'apecoin-1' из ссылки
 
-        # Формирование JSON результата
-        result = {link['title']: f"{link['link']}" for link in sitelinks}
-
-        return json.dumps(result, indent=2)
+        print('Token drop URL:', token_drop_url)
+        return token_drop_url
 
 # if __name__ == "__main__":
 #     def test_web_search_tool():
