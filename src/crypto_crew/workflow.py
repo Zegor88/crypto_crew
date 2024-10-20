@@ -98,12 +98,9 @@ class WorkFlow(Flow):
         # Analyze the technology
         print("\n", "="*23, "Technology analysis", "="*23, "\n")
 
-        token_name = self.state.metadata.get('name', "")
-        if isinstance(token_name, dict):
-            token_name = token_name.get(0, "")
         
         inputs = {
-            "token_name": token_name,
+            "token_name": self.state.name,  # Убедитесь, что это строка
             "website": self.state.metadata.get('urls.website', ""),
             "whitepaper": self.state.metadata.get('urls.technical_doc', ""),
         }
@@ -161,3 +158,8 @@ async def run():
 # Define the main function to run the flow
 def main():
     asyncio.run(run())
+
+
+def plot_flow():
+    workflow = WorkFlow()
+    workflow.plot()

@@ -15,6 +15,7 @@ train = "crypto_crew.main:train"
 replay = "crypto_crew.main:replay"
 test = "crypto_crew.main:test"
 run_flow = "crypto_crew.workflow:main"
+plot_flow = "crypto_crew.workflow:plot_flow"
 
 [build-system]
 requires = ["hatchling"]
