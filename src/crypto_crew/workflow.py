@@ -187,3 +187,4 @@ def main():
 def plot_flow():
     workflow = WorkFlow()
     workflow.plot()
+

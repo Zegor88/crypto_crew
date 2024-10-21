@@ -13,7 +13,7 @@ class WebSearchTool(BaseTool):
         """
         Search for information on the internet about the technology used by the project
         args:
-            token_name: str - the name of the token, can be a simple string or JSON string
+            token_name: str - the name of the token, can be a simple string
         output:
             str - the search results
         """

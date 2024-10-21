@@ -1,14 +1,13 @@
 ### src/crypto_crew/tools/get_fundraising.py
 
-### src/crypto_crew/tools/get_fundraising.py
-
 import os
 import json
 import requests
 import html
 from bs4 import BeautifulSoup
 from crewai_tools import BaseTool
-from src.crypto_crew.tools.get_tokenomic_links import GetTokenomicLinks
+from src.crypto_crew.tools.get_tokenomic_links import GetDropstabTokenomicLinks
+from src.crypto_crew.tools.get_cryptorank_fundraising import CryptorankFundraisingTool
 import pandas as pd
 
 class FundraisingFetcher:
@@ -222,34 +221,42 @@ class VestingFetcher:
 
 class DropstabFundraisingTool(BaseTool):
     name: str = "dropstab_fundraising_tool"
-    description: str = "Получает информацию о раундах финансирования, инвесторах и вестингах для указанного токена криптовалюты."
+    description: str = "Получает информацию о раундах финансирования, инвесторах и вестингах из Dropstab и Cryptorank для указанного токена криптовалюты."
 
     def _run(self, token: str) -> str:
         """
-        Получает информацию о раундах финансирования, инвесторах и вестингах для заданного токена.
+        Получает информацию о раундах финансирования, инвесторах и вестингах из Dropstab и Cryptorank для заданного токена.
         Args:
-            token: str - the URL of the token on dropstab.com
+            token: str - имя токена
         Returns:
-            str - the formatted fundraising data
+            str - объединенные отформатированные данные
         """
         try:
-            # Создаем экземпляр GetTokenomicLinks
-            tokenomic_links_tool = GetTokenomicLinks()
-            # Получаем название токена
-            token_drop_url = tokenomic_links_tool._run(token)
+            # Создаем экземпляр GetDropstabTokenomicLinks
+            tokenomic_links_tool = GetDropstabTokenomicLinks()
+            # Получаем названия токенов для Dropstab и Cryptorank
+            tokenomic_links = tokenomic_links_tool.get_tokenomic_links(token)
 
-            # Получаем данные о финансировании
+            print('Tokenomic links:', tokenomic_links)
+
+            # Получаем данные о финансировании из Dropstab
+            token_dropstab = tokenomic_links.get('dropstab')
+            
             fundraising_fetcher = FundraisingFetcher()
-            fundraising_data = fundraising_fetcher.get_fundraising(token_drop_url)
+            fundraising_data = fundraising_fetcher.get_fundraising(token_dropstab)
 
-            # Получаем данные о вестинге
+            # Получаем данные о вестинге из Dropstab
             vesting_fetcher = VestingFetcher()
-            vesting_data = vesting_fetcher.get_vesting_lock(token_drop_url)
+            vesting_data = vesting_fetcher.get_vesting_lock(token_dropstab)
+
+            # Получаем данные о финансировании из Cryptorank
+            cryptorank_tool = CryptorankFundraisingTool()
+            cryptorank_data = cryptorank_tool._run(tokenomic_links.get('cryptorank'))
 
             # Объединяем результаты
-            combined_result = fundraising_data + vesting_data
+            combined_result = "Source: Dropstab\n\n" + fundraising_data + "\n\n" + vesting_data + "\n\nSource: Cryptorank\n\n" + cryptorank_data
 
             return combined_result
 
         except Exception as e:
-            return f"Ошибка при выполнении FundraisingTool: {e}"
+            return f"Ошибка при выполнении DropstabFundraisingTool: {e}"
