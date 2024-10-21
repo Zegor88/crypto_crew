@@ -2,9 +2,9 @@
 
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
-from crewai_tools import ScrapeWebsiteTool
+from crewai_tools import ScrapeWebsiteTool, WebsiteSearchTool
 from src.crypto_crew.tools.web_search import WebSearchTool
-from src.crypto_crew.tools.get_fundraising import FundraisingTool
+from src.crypto_crew.tools.get_fundraising import DropstabFundraisingTool
 
 @CrewBase
 class CryptocrewCrew():
@@ -30,7 +30,7 @@ class CryptocrewCrew():
 		return Agent(
 			config=self.agents_config['crypto_tokenomics_analyst'],
 			verbose=True,
-			tools=[FundraisingTool()]
+			tools=[DropstabFundraisingTool(), ScrapeWebsiteTool(), WebsiteSearchTool()]
 		)
 	
 	@task
