@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 from crewai_tools import BaseTool
 from src.crypto_crew.tools.get_tokenomic_links import GetDropstabTokenomicLinks
 from src.crypto_crew.tools.get_cryptorank_fundraising import CryptorankFundraisingTool
+from src.crypto_crew.tools.get_cryptorank_vesting import CryptoRankVestingFetcher
 import pandas as pd
 
 class FundraisingFetcher:
@@ -148,7 +149,7 @@ class VestingFetcher:
             # Отправляем POST-запрос
             response = requests.post(url, headers=headers, data=json.dumps(data))
             print(f"Status code (Vesting): {response.status_code}")
-            # Проверка успешности запроса
+            # Проерка успешности запроса
             if response.status_code != 200:
                 raise Exception(f"Ошибка: Неверный код ответа {response.status_code}")
             
@@ -249,13 +250,30 @@ class DropstabFundraisingTool(BaseTool):
             vesting_fetcher = VestingFetcher()
             vesting_data = vesting_fetcher.get_vesting_lock(token_dropstab)
 
+            # Получаем данные о вестинге из Cryptorank
+            cryptorank_vesting_fetcher = CryptoRankVestingFetcher()
+            cryptorank_vesting_data = cryptorank_vesting_fetcher.get_vesting_cryptorank(tokenomic_links.get('cryptorank'))
+
             # Получаем данные о финансировании из Cryptorank
             cryptorank_tool = CryptorankFundraisingTool()
             cryptorank_data = cryptorank_tool._run(tokenomic_links.get('cryptorank'))
 
             # Объединяем результаты
-            combined_result = "Source: Dropstab\n\n" + fundraising_data + "\n\n" + vesting_data + "\n\nSource: Cryptorank\n\n" + cryptorank_data
-
+            combined_result = "Source: Dropstab\n\n" + fundraising_data + "\n\n" + vesting_data + "\n\n" + \
+                              "Source: Cryptorank\n\n" + cryptorank_data + "\n\n" + \
+                              "Source: Cryptorank Vesting\n\n" + "\n".join(
+                                  [f"Тип: {item['Тип']}, Процент: {item['Процент']}, Количество токенов: {item['Количество токенов']}, Долларовый эквивалент: {item['Долларовый эквивалент']}" for item in cryptorank_vesting_data['distribution_progress']]
+                              )
+            
+            # Выводим данные об аллокации
+            allocation_data = "\nДанные об аллокации:\n"
+            allocation_data += "| Name                        | Total  | Unlocked | Locked |\n"
+            allocation_data += "|-----------------------------|--------|----------|--------|\n"
+            for item in cryptorank_vesting_data['allocation_data']:
+                allocation_data += f"| {item['Name']:<27} | {item['Total']:<6} | {item['Unlocked']:<8} | {item['Locked']:<6} |\n"
+            
+            combined_result += "\n" + allocation_data
+            
             return combined_result
 
         except Exception as e:
