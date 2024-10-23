@@ -23,7 +23,7 @@ technology_analyst_task:
     Sequentially explore the following sources of information:
 
     1. The official project website ({website}) using the 'ScrapeWebsiteTool'.
-    2. The project's documentation (or Whitepaper) ({whitepaper}) using the 'ScrapeWebsiteTool'.
+    2. The project's documentation (or Whitepaper) ({whitepaper}) using the 'ScrapeWebsiteTool' (argument: token_name as string).
     3. Conduct an internet search for additional information about the technologies using the 'search technology' tool.
     4. From the obtained results, select several articles and investigate them using the 'ScrapeWebsiteTool'.
 
@@ -109,7 +109,7 @@ crypto_tokenomics_analysis_task:
     {coin_metadata}
 
   expected_output: >
-    Структура отчета должна включать следующие элементы:
+    Качественный отчет по токеномике проекта {token_name} ({coin_symbol}) на русском языке, включающий следующие элементы:
     ## Токеномика {coin_symbol}
     1. Краткое описание проекта и его токеномики, с указанием утилитарных и управленческих функций токена.
     2. Текущая рыночная капитализация и её динамика (циркулирующее предложение × цена токена).

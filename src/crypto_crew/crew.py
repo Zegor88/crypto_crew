@@ -5,6 +5,9 @@ from crewai.project import CrewBase, agent, crew, task
 from crewai_tools import ScrapeWebsiteTool, WebsiteSearchTool
 from src.crypto_crew.tools.web_search import WebSearchTool
 from src.crypto_crew.tools.get_fundraising import DropstabFundraisingTool
+from langchain_openai import ChatOpenAI
+
+llm=ChatOpenAI(model_name="gpt-4o-mini")
 
 @CrewBase
 class CryptocrewCrew():
@@ -14,7 +17,7 @@ class CryptocrewCrew():
 	def researcher(self) -> Agent:
 		return Agent(
 			config=self.agents_config['researcher'],
-			verbose=True
+			verbose=True,
 			)
 
 	@agent

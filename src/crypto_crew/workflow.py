@@ -7,11 +7,11 @@ from src.crypto_crew.crew import CryptocrewCrew
 from src.crypto_crew.tools.get_metadata import GetCoinMetadata
 from pydantic import BaseModel
 from datetime import datetime
-from crewai import Crew 
+from crewai import Crew, Agent, Process
 from io import StringIO
 from langchain_openai import ChatOpenAI
 
-llm=ChatOpenAI(model_name="gpt-4o")
+llm=ChatOpenAI(model_name="gpt-4o-mini")
 
 # Define the current date
 current_date = datetime.now().strftime("%Y-%m-%d")
@@ -53,7 +53,7 @@ class WorkFlow(Flow):
         """
         print("\n", "="*20, "Fetching metadata", "="*20, "\n")
         metadata = GetCoinMetadata.save_dataset.invoke(coin_symbol)
-        print(metadata)
+        # print(metadata)
 
         # Check if metadata is a dictionary
         if isinstance(metadata, dict) and metadata:
@@ -112,8 +112,8 @@ class WorkFlow(Flow):
 
         # Извлекаем значения как строки
         token_name = self.state.metadata.get('name', "")
-        website = self.state.metadata.get('urls.website', "")
-        whitepaper = self.state.metadata.get('urls.technical_doc', "")
+        website = self.state.metadata.get('urls', {}).get('website', "")
+        whitepaper = self.state.metadata.get('urls', {}).get('technical_doc', "")
 
         # Если значения извлекаются как словари, берем значение по ключу 0
         if isinstance(token_name, dict):

@@ -9,33 +9,37 @@ class WebSearchTool(BaseTool):
     name: str = 'search technology'
     description: str = 'Search for information on the internet about the technology used by the project'
 
-    def _run(self, token_name: str) -> str:
+    def _run(self, name: str) -> str:
         """
         Search for information on the internet about the technology used by the project
         args:
-            token_name: str - the name of the token, can be a simple string
+            name: str - the token name
         output:
             str - the search results
         """
-        print('WebSearchTool input:', token_name)
+        print('WebSearchTool input:', name)
 
         # Check if token_name is in JSON format and extract the 'name' field if so
         try:
             # Attempt to parse token_name as JSON
-            parsed_token = json.loads(token_name)
+            parsed_token = json.loads(name)
             if isinstance(parsed_token, dict) and 'name' in parsed_token:
-                token_name = parsed_token['name']
+                name = parsed_token['name']
         except (json.JSONDecodeError, TypeError):
             # If parsing fails, assume token_name is a regular string
             pass
 
-        print('Parsed token name:', token_name)
+        # Ensure token_name is a string
+        if isinstance(name, dict) and 'name' in name:
+            name = name['name']
+
+        print('Parsed token name:', name)
 
         url = "https://google.serper.dev/search"
 
         # Correctly format the query string
         payload = json.dumps({
-            "q": f"Crypto innovations {token_name}",
+            "q": f"Crypto innovations {name}",
             "num": 20,
             "autocorrect": False,
         })

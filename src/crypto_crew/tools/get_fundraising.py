@@ -12,47 +12,46 @@ from src.crypto_crew.tools.get_cryptorank_vesting import CryptoRankVestingFetche
 import pandas as pd
 
 class FundraisingFetcher:
-    def __init__(self, base_url="http://212.113.117.33:8080"):
+    def __init__(self, base_url: str = "http://212.113.117.33:8080"):
         self.base_url = base_url
 
-    def get_html(self, token_drop_url):
+    def get_html(self, token_drop_url: str) -> str:
         """
         Отправляет POST-запрос и возвращает HTML-контент.
+
         Args:
-            token_drop_url: str - the URL of the token on dropstab.com
+            token_drop_url (str): URL токена на dropstab.com.
+
         Returns:
-            str - the HTML content
+            str: HTML содержимое.
         """
-        url = f"https://dropstab.com/coins/{token_drop_url}/fundraising"  # Формируем URL с использованием token_drop_url
+        url = f"https://dropstab.com/coins/{token_drop_url}/fundraising"
         headers = {
             "Content-Type": "application/json"
         }
 
-        # Данные для POST-запроса
-        data = {
+        payload = {
             "goto": url,
             "sel": '#coin-tabs > div > section > div',
             "timeout": 30000
         }
 
-        # Отправляем POST-запрос
-        response = requests.post(self.base_url, headers=headers, data=json.dumps(data))
+        response = requests.post(self.base_url, headers=headers, data=json.dumps(payload))
         print(f"Status code (Fundraising): {response.status_code}")
-        if response.status_code == 200:
-            # Парсим JSON ответ, извлекаем HTML-контент
-            response_data = json.loads(response.text)
-            html_content = html.unescape(response_data['data'])
-            return html_content
-        else:
-            raise Exception(f"Не удалось получить данные для URL: {url}, код состояния: {response.status_code}")
+        response.raise_for_status()
+        response_data = response.json()
+        html_content = html.unescape(response_data.get('data', ''))
+        return html_content
 
-    def parse_fundraising_rounds(self, soup):
+    def parse_fundraising_rounds(self, soup: BeautifulSoup) -> list:
         """
         Извлекает и форматирует информацию о раундах инвестирования.
+
         Args:
-            soup: BeautifulSoup object - the HTML content
+            soup (BeautifulSoup): HTML контент.
+
         Returns:
-            str - the formatted fundraising rounds
+            list: Отформатированные раунды финансирования.
         """
         rounds = []
         for div in soup.find_all('div', class_="group relative flex flex-col gap-y-4 rounded-2xl p-4 shadow-md hover:bg-gray-100 active:bg-gray-200 dark:bg-zinc-800 dark:shadow-black dark:hover:bg-zinc-700 dark:active:bg-zinc-600"):
@@ -64,13 +63,15 @@ class FundraisingFetcher:
         
         return rounds
 
-    def parse_investors(self, soup):
+    def parse_investors(self, soup: BeautifulSoup) -> list:
         """
         Извлекает и форматирует информацию об инвесторах.
+
         Args:
-            soup: BeautifulSoup object - the HTML content
+            soup (BeautifulSoup): HTML контент.
+
         Returns:
-            str - the formatted investors
+            list: Отформатированные инвесторы.
         """
         investors = []
         for row in soup.find_all('tr', class_="group tableRow"):
@@ -84,25 +85,23 @@ class FundraisingFetcher:
                 investors.append(f"{investor_number:<5} {name:<30} {tier:<10} {investor_type:<20} {stage:<10}")
         return investors
 
-    def get_fundraising(self, token_drop_url):
+    def get_fundraising(self, token_drop_url: str) -> str:
         """
         Основной метод для получения данных и форматирования результата.
+
         Args:
-            token_drop_url: str - the URL of the token on dropstab.com
+            token_drop_url (str): URL токена на dropstab.com.
+
         Returns:
-            str - the formatted fundraising data
+            str: Отформатированные данные о финансировании.
         """
         try:
             html_content = self.get_html(token_drop_url)
             soup = BeautifulSoup(html_content, "html.parser")
 
-            # Извлекаем раунды финансирования
             rounds = self.parse_fundraising_rounds(soup)
-
-            # Извлекаем информацию об инвесторах
             investors = self.parse_investors(soup)
 
-            # Форматируем текстовый вывод
             result = "# Раунды финансирования:\n"
             if rounds:
                 result += "\n".join(rounds) + "\n\n"
@@ -122,53 +121,45 @@ class FundraisingFetcher:
             return f"Ошибка при получении данных для токена URL: {token_drop_url}: {e}"
 
 class VestingFetcher:
-    def __init__(self, base_url="http://212.113.117.33:8080"):
+    def __init__(self, base_url: str = "http://212.113.117.33:8080"):
         self.base_url = base_url
 
-    def get_html(self, token):
+    def get_html(self, token: str) -> str:
         """
         Отправляет POST-запрос и возвращает HTML-контент.
-        Args:
-            token: str - the URL of the token on dropstab.com
-        Returns:
-            str - the HTML content
-        """
-        url = self.base_url  # Используем базовый URL
-        headers = {
-            "Content-Type": "application/json"
-        }
 
-        # Данные для отправки с динамической подстановкой токена
-        data = {
+        Args:
+            token (str): Название токена на dropstab.com.
+
+        Returns:
+            str: HTML содержимое.
+        """
+        payload = {
             "goto": f"https://dropstab.com/coins/{token}/vesting",
             "sel": '#coin-tabs > div > section > div',
             "timeout": 30000
         }
 
         try:
-            # Отправляем POST-запрос
-            response = requests.post(url, headers=headers, data=json.dumps(data))
+            response = requests.post(self.base_url, headers={"Content-Type": "application/json"}, data=json.dumps(payload))
             print(f"Status code (Vesting): {response.status_code}")
-            # Проерка успешности запроса
-            if response.status_code != 200:
-                raise Exception(f"Ошибка: Неверный код ответа {response.status_code}")
-            
-            # Парсим JSON ответ
-            response_data = json.loads(response.text)
-            html_content = html.unescape(response_data['data'])
+            response.raise_for_status()
+            response_data = response.json()
+            html_content = html.unescape(response_data.get('data', ''))
             return html_content
-
         except Exception as e:
             print(f"Произошла ошибка при получении Vesting данных: {e}")
-            return None
+            return ""
 
-    def parse_vesting_data(self, soup):
+    def parse_vesting_data(self, soup: BeautifulSoup) -> list:
         """
         Извлекает и форматирует информацию о Vesting.
+
         Args:
-            soup: BeautifulSoup object - the HTML content
+            soup (BeautifulSoup): HTML контент.
+
         Returns:
-            str - the formatted vesting data
+            list: Список с информацией о Vesting.
         """
         vesting_info = []
 
@@ -187,93 +178,96 @@ class VestingFetcher:
 
         return vesting_info
 
-    def get_vesting_lock(self, token):
+    def get_vesting_lock(self, token: str) -> str:
         """
-        Основной метод для получения данных о вестинге и их форматирования в DataFrame.
+        Основной метод для получения данных о вестинге и их форматирования.
+
         Args:
-            token: str - the URL of the token on dropstab.com
+            token (str): Название токена на dropstab.com.
+
         Returns:
-            str - the formatted vesting data
+            str: Отформатированные данные о вестинге.
         """
         try:
-            # Получаем HTML-контент
             html_content = self.get_html(token)
-            if html_content is None:
+            if not html_content:
                 return "Данные о вестинге не найдены."
             
-            # Парсинг HTML с помощью BeautifulSoup
             soup = BeautifulSoup(html_content, "html.parser")
-
-            # Извлекаем данные о Vesting
             vesting_info = self.parse_vesting_data(soup)
 
             if not vesting_info:
                 return "Данные о вестинге не найдены."
 
-            # Форматируем данные в виде таблицы
             vesting_df = pd.DataFrame(vesting_info)
             vesting_table = vesting_df.to_markdown(index=False)
 
             return f"\n# Vesting Information:\n{vesting_table}"
-
         except Exception as e:
             print(f"Произошла ошибка при обработке данных для токена {token}: {e}")
             return f"Ошибка при получении данных о вестинге для токена {token}: {e}"
 
 class DropstabFundraisingTool(BaseTool):
     name: str = "dropstab_fundraising_tool"
-    description: str = "Получает информацию о раундах финансирования, инвесторах и вестингах из Dropstab и Cryptorank для указанного токена криптовалюты."
+    description: str = ("Получает информацию о раундах финансирования, инвесторах и вестингах "
+                       "из Dropstab и Cryptorank для указанного токена криптовалюты.")
 
     def _run(self, token: str) -> str:
         """
-        Получает информацию о раундах финансирования, инвесторах и вестингах из Dropstab и Cryptorank для заданного токена.
+        Получает информацию о раундах финансирования, инвесторах и вестингах.
+
         Args:
-            token: str - имя токена
+            token (str): Имя токена.
+
         Returns:
-            str - объединенные отформатированные данные
+            str: Объединенные отформатированные данные.
         """
         try:
-            # Создаем экземпляр GetDropstabTokenomicLinks
             tokenomic_links_tool = GetDropstabTokenomicLinks()
-            # Получаем названия токенов для Dropstab и Cryptorank
             tokenomic_links = tokenomic_links_tool.get_tokenomic_links(token)
 
             print('Tokenomic links:', tokenomic_links)
 
-            # Получаем данные о финансировании из Dropstab
             token_dropstab = tokenomic_links.get('dropstab')
-            
+
             fundraising_fetcher = FundraisingFetcher()
             fundraising_data = fundraising_fetcher.get_fundraising(token_dropstab)
 
-            # Получаем данные о вестинге из Dropstab
             vesting_fetcher = VestingFetcher()
             vesting_data = vesting_fetcher.get_vesting_lock(token_dropstab)
 
-            # Получаем данные о вестинге из Cryptorank
             cryptorank_vesting_fetcher = CryptoRankVestingFetcher()
             cryptorank_vesting_data = cryptorank_vesting_fetcher.get_vesting_cryptorank(tokenomic_links.get('cryptorank'))
 
-            # Получаем данные о финансировании из Cryptorank
             cryptorank_tool = CryptorankFundraisingTool()
             cryptorank_data = cryptorank_tool._run(tokenomic_links.get('cryptorank'))
 
-            # Объединяем результаты
-            combined_result = "Source: Dropstab\n\n" + fundraising_data + "\n\n" + vesting_data + "\n\n" + \
-                              "Source: Cryptorank\n\n" + cryptorank_data + "\n\n" + \
-                              "Source: Cryptorank Vesting\n\n" + "\n".join(
-                                  [f"Тип: {item['Тип']}, Процент: {item['Процент']}, Количество токенов: {item['Количество токенов']}, Долларовый эквивалент: {item['Долларовый эквивалент']}" for item in cryptorank_vesting_data['distribution_progress']]
-                              )
+            combined_result = (
+                "Source: Dropstab\n\n"
+                f"{fundraising_data}\n\n"
+                f"{vesting_data}\n\n"
+                "Source: Cryptorank\n\n"
+                f"{cryptorank_data}\n\n"
+                "Source: Cryptorank Vesting\n\n" +
+                "\n".join([
+                    f"Тип: {item['Тип']}, Процент: {item['Процент']}, "
+                    f"Количество токенов: {item['Количество токенов']}, "
+                    f"Долларовый эквивалент: {item['Долларовый эквивалент']}"
+                    for item in cryptorank_vesting_data.get('distribution_progress', [])
+                ])
+            )
             
-            # Выводим данные об аллокации
-            allocation_data = "\nДанные об аллокации:\n"
+            allocation_data = "Данные об аллокации:\n"
             allocation_data += "| Name                        | Total  | Unlocked | Locked |\n"
             allocation_data += "|-----------------------------|--------|----------|--------|\n"
-            for item in cryptorank_vesting_data['allocation_data']:
-                allocation_data += f"| {item['Name']:<27} | {item['Total']:<6} | {item['Unlocked']:<8} | {item['Locked']:<6} |\n"
+            for item in cryptorank_vesting_data.get('allocation_data', []):
+                name = item.get('Name', 'N/A')
+                total = item.get('Total', 'N/A')
+                unlocked = item.get('Unlocked', 'N/A')
+                locked = item.get('Locked', 'N/A')
+                allocation_data += f"| {name:<27} | {total:<6} | {unlocked:<8} | {locked:<6} |\n"
             
             combined_result += "\n" + allocation_data
-            
             return combined_result
 
         except Exception as e:
