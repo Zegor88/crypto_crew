@@ -5,7 +5,12 @@ import os
 import requests
 import json
 from dotenv import load_dotenv
+import logging  # Добавлено импортирование logging
 load_dotenv()
+
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class GetDropstabTokenomicLinks(BaseTool):
     name: str = 'get dropstab tokenomic links'
@@ -28,21 +33,28 @@ class GetDropstabTokenomicLinks(BaseTool):
             'Content-Type': 'application/json'
         }
 
-        response = requests.post(url, headers=headers, data=payload)
-        response.raise_for_status()
-        response_data = response.json()
+        try:
+            response = requests.post(url, headers=headers, data=payload)
+            logger.info(f"Запрос к {url} с параметрами: {payload}")
+            response.raise_for_status()
+            response_data = response.json()
 
-        organic = response_data.get('organic', [])
-        if not organic:
-            raise ValueError("Нет результатов в секции 'organic'")
+            organic = response_data.get('organic', [])
+            if not organic:
+                logger.warning("Нет результатов в секции 'organic'")
+                raise ValueError("Нет результатов в секции 'organic'")
 
-        first_link = organic[0].get('link', '')
-        if not first_link:
-            raise ValueError("Первая ссылка отсутствует в результатах поиска")
+            first_link = organic[0].get('link', '')
+            if not first_link:
+                logger.warning("Первая ссылка отсутствует в результатах поиска")
+                raise ValueError("Первая ссылка отсутствует в результатах поиска")
 
-        token_drop_url = first_link.rstrip('/').split('/')[-1]
-        print('Token drop URL in dropstab:', token_drop_url)
-        return token_drop_url
+            token_drop_url = first_link.rstrip('/').split('/')[-1]
+            logger.info(f"Token drop URL в Dropstab: {token_drop_url}")
+            return token_drop_url
+        except Exception as e:
+            logger.error(f"Ошибка при получении ссылки Dropstab: {e}")
+            raise Exception("Не удалось получить ссылку Dropstab")
 
     def get_tokenomic_links(self, token_name: str) -> dict:
         """
@@ -65,9 +77,10 @@ class GetDropstabTokenomicLinks(BaseTool):
                 "dropstab": dropstab_link,
                 "cryptorank": cryptorank_link
             }
+            logger.info(f"Полученные ссылки: {result}")
             return result
         except Exception as e:
-            print(f"Ошибка при получении tokenomic ссылок: {e}")
+            logger.error(f"Ошибка при получении tokenomic ссылок: {e}")
             return {}
 
 class GetCryptorankTokenomicLinks(BaseTool):
@@ -104,7 +117,7 @@ class GetCryptorankTokenomicLinks(BaseTool):
             raise ValueError("Первая ссылка отсутствует в результатах поиска")
 
         token_cryptorank_url = first_link.rstrip('/').split('/')[-1]
-        print('Token cryptorank URL:', token_cryptorank_url)
+        logger.info(f"Token cryptorank URL: {token_cryptorank_url}")
         return token_cryptorank_url
 
     @staticmethod

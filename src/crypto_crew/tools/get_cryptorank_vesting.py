@@ -3,6 +3,11 @@ import json
 import html
 from bs4 import BeautifulSoup
 from crewai_tools import BaseTool
+import logging  # Добавлено импортирование logging
+
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class CryptoRankVestingFetcher(BaseTool):
     name: str = "cryptorank_vesting_tool"
@@ -30,19 +35,27 @@ class CryptoRankVestingFetcher(BaseTool):
             "timeout": 30000
         }
         
-        response = requests.post(url, headers=headers, data=json.dumps(payload))
-        response.raise_for_status()
-        
-        decoded_html = html.unescape(response.json().get('data', ''))
-        soup = BeautifulSoup(decoded_html, 'html.parser')
+        try:
+            response = requests.post(url, headers=headers, data=json.dumps(payload))
+            logger.info(f"Запрос к {url} для токена {token}. Статус: {response.status_code}")
+            response.raise_for_status()
+            
+            decoded_html = html.unescape(response.json().get('data', ''))
+            soup = BeautifulSoup(decoded_html, 'html.parser')
 
-        distribution_progress = self.extract_distribution_progress(soup)
-        allocation = self.extract_allocation_data(soup)
+            distribution_progress = self.extract_distribution_progress(soup)
+            allocation = self.extract_allocation_data(soup)
 
-        return {
-            'distribution_progress': distribution_progress,
-            'allocation_data': allocation
-        }
+            return {
+                'distribution_progress': distribution_progress,
+                'allocation_data': allocation
+            }
+        except requests.HTTPError:
+            logger.error("Информация о Vesting из Cryptorank не получена из-за HTTP ошибки.")
+            raise Exception("Информация о Vesting из Cryptorank не получена")
+        except Exception as e:
+            logger.error(f"Произошла ошибка: {e}")
+            raise Exception("Информация о Vesting из Cryptorank не получена")
 
     @staticmethod
     def extract_distribution_progress(soup: BeautifulSoup) -> list:
@@ -134,4 +147,5 @@ class CryptoRankVestingFetcher(BaseTool):
                 result += f"| {item['Name']} | {item['Total']} | {item['Unlocked']} | {item['Locked']} |\n"
             return result
         except Exception as e:
-            return f"Ошибка при выполнении CryptoRankVestingFetcher: {e}"
+            logger.error(f"Ошибка при выполнении CryptoRankVestingFetcher: {e}")
+            return "Информация о Vesting из Cryptorank не получена"

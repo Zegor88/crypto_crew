@@ -5,6 +5,11 @@ import html
 import requests
 from bs4 import BeautifulSoup
 from crewai_tools import BaseTool
+import logging  # Добавлено импортирование logging
+
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class CryptoRankScraper:
     """
@@ -44,9 +49,17 @@ class CryptoRankScraper:
             "timeout": 30000
         }
 
-        response = self.session.post(self.base_url, data=json.dumps(payload))
-        response.raise_for_status()
-        return response.text
+        try:
+            response = self.session.post(self.base_url, data=json.dumps(payload))
+            logger.info(f"Cryptorank Fundraising, status: {response.status_code}")
+            response.raise_for_status()
+            return response.text
+        except requests.HTTPError:
+            logger.error("Информация о Fundraising из Cryptorank не получена из-за HTTP ошибки.")
+            raise Exception("Информация о Fundraising из Cryptorank не получена")
+        except Exception as e:
+            logger.error(f"Ошибка при получении Fundraising данных: {e}")
+            raise Exception("Информация о Fundraising из Cryptorank не получена")
 
     def extract_funding_rounds(self, soup: BeautifulSoup) -> list:
         """
@@ -183,14 +196,18 @@ class CryptoRankScraper:
         Returns:
             str: Отформатированные данные о финансировании и инвесторах.
         """
-        html_content = self.fetch_fundraising_page(token)
-        decoded_html = html.unescape(html_content)
-        soup = BeautifulSoup(decoded_html, 'html.parser')
+        try:
+            html_content = self.fetch_fundraising_page(token)
+            decoded_html = html.unescape(html_content)
+            soup = BeautifulSoup(decoded_html, 'html.parser')
 
-        funding_rounds = self.extract_funding_rounds(soup)
-        investors = self.extract_investors(soup)
+            funding_rounds = self.extract_funding_rounds(soup)
+            investors = self.extract_investors(soup)
 
-        return self._format_results(funding_rounds, investors)
+            return self._format_results(funding_rounds, investors)
+        except Exception as e:
+            logger.error(f"Ошибка при скрапинге данных из Cryptorank: {e}")
+            raise Exception("Информация о Fundraising из Cryptorank не получена")
 
     @staticmethod
     def _format_results(funding_rounds: list, investors: list) -> str:
@@ -259,3 +276,4 @@ class CryptorankFundraisingTool(BaseTool):
             return f"HTTP ошибка при выполнении CryptorankFundraisingTool: {http_err}"
         except Exception as err:
             return f"Неизвестная ошибка при выполнении CryptorankFundraisingTool: {err}"
+

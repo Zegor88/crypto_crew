@@ -10,6 +10,11 @@ from src.crypto_crew.tools.get_tokenomic_links import GetDropstabTokenomicLinks
 from src.crypto_crew.tools.get_cryptorank_fundraising import CryptorankFundraisingTool
 from src.crypto_crew.tools.get_cryptorank_vesting import CryptoRankVestingFetcher
 import pandas as pd
+import logging  # Добавлено импортирование logging
+
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class FundraisingFetcher:
     def __init__(self, base_url: str = "http://212.113.117.33:8080"):
@@ -36,12 +41,19 @@ class FundraisingFetcher:
             "timeout": 30000
         }
 
-        response = requests.post(self.base_url, headers=headers, data=json.dumps(payload))
-        print(f"Status code (Fundraising): {response.status_code}")
-        response.raise_for_status()
-        response_data = response.json()
-        html_content = html.unescape(response_data.get('data', ''))
-        return html_content
+        try:
+            response = requests.post(self.base_url, headers=headers, data=json.dumps(payload))
+            logger.info(f"Dropstab Fundraising, status: {response.status_code}")
+            response.raise_for_status()
+            response_data = response.json()
+            html_content = html.unescape(response_data.get('data', ''))
+            return html_content
+        except requests.HTTPError:
+            logger.error("Информация о Fundraising из Dropstab не получена из-за HTTP ошибки.")
+            raise Exception("Информация о Fundraising из Dropstab не получена")
+        except Exception as e:
+            logger.error(f"Ошибка при получении Fundraising данных: {e}")
+            raise Exception(f"Ошибка при получении данных для токена URL: {token_drop_url}: {e}")
 
     def parse_fundraising_rounds(self, soup: BeautifulSoup) -> list:
         """
@@ -116,8 +128,10 @@ class FundraisingFetcher:
             else:
                 result += "Инвесторы не найдены."
 
+            logger.info("Финансирование успешно получено и отформатировано.")
             return result
         except Exception as e:
+            logger.error(f"Ошибка при получении данных для токена URL: {token_drop_url}: {e}")
             return f"Ошибка при получении данных для токена URL: {token_drop_url}: {e}"
 
 class VestingFetcher:
@@ -142,13 +156,13 @@ class VestingFetcher:
 
         try:
             response = requests.post(self.base_url, headers={"Content-Type": "application/json"}, data=json.dumps(payload))
-            print(f"Status code (Vesting): {response.status_code}")
+            
             response.raise_for_status()
             response_data = response.json()
             html_content = html.unescape(response_data.get('data', ''))
             return html_content
         except Exception as e:
-            print(f"Произошла ошибка при получении Vesting данных: {e}")
+            logger.error(f"Ошибка при получении Vesting данных: {e}")
             return ""
 
     def parse_vesting_data(self, soup: BeautifulSoup) -> list:
@@ -226,48 +240,67 @@ class DropstabFundraisingTool(BaseTool):
             tokenomic_links_tool = GetDropstabTokenomicLinks()
             tokenomic_links = tokenomic_links_tool.get_tokenomic_links(token)
 
-            print('Tokenomic links:', tokenomic_links)
+            logger.info('Tokenomic links:', tokenomic_links)
 
             token_dropstab = tokenomic_links.get('dropstab')
 
             fundraising_fetcher = FundraisingFetcher()
-            fundraising_data = fundraising_fetcher.get_fundraising(token_dropstab)
-
             vesting_fetcher = VestingFetcher()
-            vesting_data = vesting_fetcher.get_vesting_lock(token_dropstab)
-
             cryptorank_vesting_fetcher = CryptoRankVestingFetcher()
-            cryptorank_vesting_data = cryptorank_vesting_fetcher.get_vesting_cryptorank(tokenomic_links.get('cryptorank'))
-
             cryptorank_tool = CryptorankFundraisingTool()
-            cryptorank_data = cryptorank_tool._run(tokenomic_links.get('cryptorank'))
 
-            combined_result = (
-                "Source: Dropstab\n\n"
-                f"{fundraising_data}\n\n"
-                f"{vesting_data}\n\n"
-                "Source: Cryptorank\n\n"
-                f"{cryptorank_data}\n\n"
-                "Source: Cryptorank Vesting\n\n" +
-                "\n".join([
-                    f"Тип: {item['Тип']}, Процент: {item['Процент']}, "
-                    f"Количество токенов: {item['Количество токенов']}, "
-                    f"Долларовый эквивалент: {item['Долларовый эквивалент']}"
-                    for item in cryptorank_vesting_data.get('distribution_progress', [])
-                ])
-            )
-            
-            allocation_data = "Данные об аллокации:\n"
-            allocation_data += "| Name                        | Total  | Unlocked | Locked |\n"
-            allocation_data += "|-----------------------------|--------|----------|--------|\n"
-            for item in cryptorank_vesting_data.get('allocation_data', []):
-                name = item.get('Name', 'N/A')
-                total = item.get('Total', 'N/A')
-                unlocked = item.get('Unlocked', 'N/A')
-                locked = item.get('Locked', 'N/A')
-                allocation_data += f"| {name:<27} | {total:<6} | {unlocked:<8} | {locked:<6} |\n"
-            
-            combined_result += "\n" + allocation_data
+            combined_result = ""
+
+            # Получение Dropstab Fundraising
+            try:
+                fundraising_data = fundraising_fetcher.get_fundraising(token_dropstab)
+                combined_result += f"{fundraising_data}\n\n"
+            except Exception as e:
+                logger.error(f"Не удалось получить Dropstab Fundraising: {e}")
+                combined_result += "Не удалось получить данные о Dropstab Fundraising.\n\n"
+
+            # Получение Dropstab Vesting
+            try:
+                vesting_data = vesting_fetcher.get_vesting_lock(token_dropstab)
+                combined_result += f"{vesting_data}\n\n"
+            except Exception as e:
+                logger.error(f"Не удалось получить Dropstab Vesting: {e}")
+                combined_result += "Не удалось получить данные о Dropstab Vesting.\n\n"
+
+            # Получение Cryptorank Fundraising
+            try:
+                cryptorank_data = cryptorank_tool._run(tokenomic_links.get('cryptorank'))
+                combined_result += f"{cryptorank_data}\n\n"
+            except Exception as e:
+                logger.error(f"Не удалось получить Cryptorank Fundraising: {e}")
+                combined_result += "Не удалось получить данные о Cryptorank Fundraising.\n\n"
+
+            # Получение Cryptorank Vesting
+            try:
+                cryptorank_vesting_data = cryptorank_vesting_fetcher.get_vesting_cryptorank(tokenomic_links.get('cryptorank'))
+                combined_result += (
+                    "\n".join([
+                        f"Тип: {item['Тип']}, Процент: {item['Процент']}, "
+                        f"Количество токенов: {item['Количество токенов']}, "
+                        f"Долларовый эквивалент: {item['Долларовый эквивалент']}"
+                        for item in cryptorank_vesting_data.get('distribution_progress', [])
+                    ])
+                )
+                allocation_data = "Данные об аллокации:\n"
+                allocation_data += "| Name                        | Total  | Unlocked | Locked |\n"
+                allocation_data += "|-----------------------------|--------|----------|--------|\n"
+                for item in cryptorank_vesting_data.get('allocation_data', []):
+                    name = item.get('Name', 'N/A')
+                    total = item.get('Total', 'N/A')
+                    unlocked = item.get('Unlocked', 'N/A')
+                    locked = item.get('Locked', 'N/A')
+                    allocation_data += f"| {name:<27} | {total:<6} | {unlocked:<8} | {locked:<6} |\n"
+                
+                combined_result += "\n" + allocation_data
+            except Exception as e:
+                logger.error(f"Не удалось получить Cryptorank Vesting: {e}")
+                combined_result += "Не удалось получить данные о Cryptorank Vesting.\n"
+
             return combined_result
 
         except Exception as e:
