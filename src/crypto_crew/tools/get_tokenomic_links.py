@@ -56,33 +56,6 @@ class GetDropstabTokenomicLinks(BaseTool):
             logger.error(f"Ошибка при получении ссылки Dropstab: {e}")
             raise Exception("Не удалось получить ссылку Dropstab")
 
-    def get_tokenomic_links(self, token_name: str) -> dict:
-        """
-        Получает ссылки на tokenomic данные Dropstab и Cryptorank.
-
-        Args:
-            token_name (str): Название токена.
-
-        Returns:
-            dict: Ссылки на Dropstab и Cryptorank.
-        """
-        get_dropstab = GetDropstabTokenomicLinks()
-        get_cryptorank = GetCryptorankTokenomicLinks()
-
-        try:
-            dropstab_link = get_dropstab._run(token_name)
-            cryptorank_link = get_cryptorank._run(token_name)
-
-            result = {
-                "dropstab": dropstab_link,
-                "cryptorank": cryptorank_link
-            }
-            logger.info(f"Полученные ссылки: {result}")
-            return result
-        except Exception as e:
-            logger.error(f"Ошибка при получении tokenomic ссылок: {e}")
-            return {}
-
 class GetCryptorankTokenomicLinks(BaseTool):
     name: str = 'get cryptorank tokenomic links'
     description: str = 'Получает ссылки на tokenomic данные Cryptorank'
@@ -120,8 +93,11 @@ class GetCryptorankTokenomicLinks(BaseTool):
         logger.info(f"Token cryptorank URL: {token_cryptorank_url}")
         return token_cryptorank_url
 
-    @staticmethod
-    def get_tokenomic_links(token_name: str) -> dict:
+class GetTokenomicLinks(BaseTool):  
+    name: str = 'get tokenomic links'
+    description: str = 'Получает ссылки на tokenomic данные Dropstab и Cryptorank'
+
+    def _run(self, token_name: str) -> dict:
         """
         Получает ссылки на tokenomic данные Dropstab и Cryptorank.
 
@@ -142,7 +118,8 @@ class GetCryptorankTokenomicLinks(BaseTool):
                 "dropstab": dropstab_link,
                 "cryptorank": cryptorank_link
             }
+            logger.info(f"Полученные ссылки GetTokenomicLinks: {result}")
             return result
         except Exception as e:
-            print(f"Ошибка при получении tokenomic ссылок: {e}")
+            logger.error(f"Ошибка при получении tokenomic ссылок: {e}")
             return {}

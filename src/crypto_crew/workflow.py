@@ -168,6 +168,30 @@ class WorkFlow(Flow):
             verbose=True,
         )
         result = crew.kickoff(inputs=inputs)
+    
+    @listen("proceed_to_analysis")
+    def fundraising_analysis(self):
+        # Analyze the fundraising
+        print("\n", "="*23, "Fundraising analysis", "="*23, "\n")
+
+        inputs = {
+            "token_name": self.state.name,
+            'coin_symbol': self.state.token,
+            'coin_metadata': self.state.metadata,
+        }
+
+        # Get the agent and task
+        agent = self.fa_crew.fundraising_analyst()
+        task = self.fa_crew.fundraising_analysis_task()
+
+        # Create a crew with only this agent and task
+        crew = Crew(
+            agents=[agent],
+            tasks=[task],
+            process='sequential',
+            verbose=True,
+        )
+        result = crew.kickoff(inputs=inputs)
 
 # Define the async run function
 async def run():
